@@ -3,7 +3,7 @@ import struct
 import sys
 import time
 
-from PyQt6.QtWidgets import QApplication, QWidget, QGridLayout, QLabel
+from PyQt6.QtWidgets import QApplication, QWidget, QGridLayout, QLabel, QPushButton
 from PyQt6.QtCore import Qt, QObject, QThread, pyqtSignal, pyqtSlot
 
 from fields import FIELDS 
@@ -65,6 +65,12 @@ class MainWindow(QWidget):
 
         self.setWindowTitle("FH6 Dashboard")
         #self.resize(500, 200)
+        #self.setWindowOpacity(0.50)
+        self.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground)
+        self.setWindowFlags(
+            Qt.WindowType.WindowStaysOnTopHint
+            | Qt.WindowType.FramelessWindowHint
+        )
 
         self.speed = 0
         self.rpm = 0
@@ -94,30 +100,67 @@ class MainWindow(QWidget):
         self.boost_label = QLabel(f"Boost: \n{self.boost}")
         self.shift_light = QLabel()
 
-        self.speed_label.setStyleSheet("font-size: 48px;")
-        self.rpm_label.setStyleSheet("font-size: 48px;")
-        self.boost_label.setStyleSheet("font-size: 48px;")
+        label_style = """
+            font-size: 48px;
+            color: white;
+            background: transparent;
+        """
 
-        self.shift_light.setFixedSize(100, 100)
+        self.speed_label.setStyleSheet(label_style)
+        self.rpm_label.setStyleSheet(label_style)
+        self.boost_label.setStyleSheet(label_style)
+
+        self.shift_light.setFixedSize(150, 150)
         self.shift_light.setStyleSheet("""
             background-color: green;
             border-radius: 25px;
             border: 2px solid black;
         """)
 
+        self.drag_bar = QLabel("Drag")
+        self.drag_bar.setFixedHeight(25)
+        self.drag_bar.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self.drag_bar.setCursor(Qt.CursorShape.SizeAllCursor)
+
+        self.drag_bar.setStyleSheet("""
+            color: white;
+            background-color: rgba(60, 60, 60, 60);
+        """)
+
+        self.drag_bar.mousePressEvent = self.drag_bar_mouse_press
+
+        layout.addWidget(self.drag_bar, 0, 0)
+
+        self.close_button = QPushButton("X")
+
+        self.close_button.setStyleSheet("""
+            QPushButton {
+                color: white;
+                background-color: rgba(60, 60, 60, 60);
+            }
+
+            QPushButton:hover {
+                background-color: red;
+            }
+        """)
+
+        self.close_button.clicked.connect(self.close)
+
+        layout.addWidget(self.close_button, 0, 1)
+
         self.speed_label.setAlignment(Qt.AlignmentFlag.AlignHCenter)
         self.rpm_label.setAlignment(Qt.AlignmentFlag.AlignHCenter)
         self.boost_label.setAlignment(Qt.AlignmentFlag.AlignHCenter)
 
-        layout.addWidget(self.rpm_label, 0, 0)
+        layout.addWidget(self.rpm_label, 1, 0)
         layout.addWidget(
             self.shift_light,
-            0,
+            1,
             1,
             alignment=Qt.AlignmentFlag.AlignHCenter | Qt.AlignmentFlag.AlignVCenter
         )
-        layout.addWidget(self.speed_label, 1, 0)
-        layout.addWidget(self.boost_label, 1, 1)
+        layout.addWidget(self.speed_label, 2, 0)
+        layout.addWidget(self.boost_label, 2, 1)
 
         #layout.setColumnStretch(0, 1)
         #layout.setColumnStretch(1, 1)
@@ -140,6 +183,11 @@ class MainWindow(QWidget):
             border-radius: 25px;
             border: 2px solid black;
         """)
+
+    def drag_bar_mouse_press(self, event):
+        if event.button() == Qt.MouseButton.LeftButton:
+            self.windowHandle().startSystemMove()
+            event.accept()
 
     def loop(self, t):
         speed_mps = t["Speed"]
